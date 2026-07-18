@@ -3,7 +3,7 @@ html<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Christelle - 音声フランス語会話</title>
+    <title>Christelle - 完全自動・音声フランス語会話</title>
     <style>
         :root {
             --primary-color: #4a90e2;
@@ -25,17 +25,42 @@ html<!DOCTYPE html>
         header {
             background-color: var(--primary-color);
             color: white;
-            padding: 15px;
+            padding: 12px;
             text-align: center;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             font-weight: bold;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .subtitle {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             font-weight: normal;
             opacity: 0.9;
             margin-top: 4px;
+        }
+        #key-container {
+            background-color: #fff3cd;
+            padding: 10px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+            border-bottom: 1px solid #ffeeba;
+        }
+        #api-key-input {
+            padding: 6px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 250px;
+            font-size: 0.85rem;
+        }
+        #save-key-btn {
+            background-color: #ffc107;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.85rem;
         }
         #chat-container {
             flex: 1;
@@ -86,6 +111,12 @@ html<!DOCTYPE html>
             border-top: 1px dashed #ddd;
             padding-top: 8px;
         }
+        .status-msg {
+            font-size: 0.8rem;
+            color: #888;
+            font-style: italic;
+            align-self: center;
+        }
         #input-container {
             padding: 10px;
             background-color: white;
@@ -132,10 +163,18 @@ html<!DOCTYPE html>
 
     <header>
         Christelle (クリステル)
-        <div class="subtitle">🎙️ 音声入力・自動返信モード (フランス語学習)</div>
+        <div class="subtitle">🤖 Gemini無料AI連携・音声完全自動モード</div>
     </header>
 
+    <!-- APIキー入力欄（ブラウザに安全に保存されます） -->
+    <div id="key-container">
+        <span style="font-size: 0.85rem; color: #856404;">最初にGeminiのAPIキーを入力してください：</span>
+        <input type="password" id="api-key-input" placeholder="AIzaSy...">
+        <button id="save-key-btn" onclick="saveApiKey()">保存</button>
+    </div>
+
     <div id="chat-container">
+        <!-- 最初のメッセージ -->
         <div class="message bot">
             <span class="french-text">Enchanté ! Je m'appelle Christelle. J'ai 43 ans et je viens du nord-ouest de la France. Comment tu t'appelles ?</span>
             <br>
@@ -148,15 +187,41 @@ html<!DOCTYPE html>
 
     <div id="input-container">
         <button id="mic-btn" class="icon-btn" onclick="toggleSpeechRecognition()">🎙️</button>
-        <input type="text" id="user-input" placeholder="文字入力、またはClaudeの返信をコピペ..." autocomplete="off">
+        <input type="text" id="user-input" placeholder="フランス語で話すか文字を入力..." autocomplete="off">
         <button id="send-btn" class="icon-btn" onclick="processInput()">➤</button>
     </div>
 
     <script>
         let recognition;
         let isRecording = false;
+        let apiKey = localStorage.getItem('gemini_api_key') || '';
+        
+        // 会話履歴を保持する配列（AIに過去の文脈を理解させるため）
+        let chatHistory = [
+            { role: "user", parts: [{ text: "Bonjour" }] },
+            { role: "model", parts: [{ text: "Enchanté ! Je m'appelle Christelle. J'ai 43 ans et je viens du nord-ouest de la France. Comment tu t'appelles ?" }] }
+        ];
 
-        // 音声認識の初期化（エラーで全体が止まらないように対策）
+        // 起動時にキーが保存されていれば入力欄を非表示にする
+        window.addEventListener('DOMContentLoaded', () => {
+            if (apiKey) {
+                document.getElementById('key-container').style.display = 'none';
+            }
+        });
+
+        function saveApiKey() {
+            const keyInput = document.getElementById('api-key-input').value.trim();
+            if (!keyInput) {
+                alert("キーを入力してください。");
+                return;
+            }
+            localStorage.setItem('gemini_api_key', keyInput);
+            apiKey = keyInput;
+            document.getElementById('key-container').style.display = 'none';
+            alert("キーをブラウザに安全に保存しました！");
+        }
+
+        // 音声認識の設定
         try {
             if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -165,34 +230,27 @@ html<!DOCTYPE html>
                 recognition.interimResults = false;
 
                 recognition.onresult = (event) => {
-                    document.getElementById('user-input').value = event.results[0][0].transcript;
+                    document.getElementById('user-input').value = event.results.transcript;
                 };
                 recognition.onerror = () => { stopRecording(); };
                 recognition.onend = () => { stopRecording(); };
             }
-        } catch(e) {
-            console.log("音声認識非対応環境です");
-        }
+        } catch(e) { console.log("音声認識非対応"); }
 
         function toggleSpeechRecognition() {
             if (!recognition) {
-                alert("お使いのブラウザやLINE内ブラウザ等は音声入力に対応していません。SafariやChromeアプリで開き直してください。");
+                alert("お使いのブラウザは音声入力に対応していません。SafariかChromeで開き直してください。");
                 return;
             }
-            if (isRecording) {
-                recognition.stop();
-            } else {
-                startRecording();
-            }
+            if (isRecording) { recognition.stop(); } else { startRecording(); }
         }
 
         function startRecording() {
             try {
                 window.speechSynthesis.cancel();
                 recognition.start();
-                const micBtn = document.getElementById('mic-btn');
-                micBtn.classList.add('recording');
-                micBtn.innerText = '🛑';
+                document.getElementById('mic-btn').classList.add('recording');
+                document.getElementById('mic-btn').innerText = '🛑';
                 isRecording = true;
             } catch (e) { stopRecording(); }
         }
@@ -216,49 +274,28 @@ html<!DOCTYPE html>
             } catch(e) { console.log("音声再生エラー"); }
         }
 
-        function processInput() {
+        // 入力・送信処理
+        async function processInput() {
+            if (!apiKey) {
+                alert("先に画面上部でGeminiのAPIキーを保存してください。");
+                return;
+            }
+
             const inputField = document.getElementById('user-input');
             const messageText = inputField.value.trim();
             if (messageText === '') return;
 
             const chatContainer = document.getElementById('chat-container');
-            const hasJapanese = /[\u3000-\u303F\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(messageText);
 
-            if (!hasJapanese) {
-                const botMessage = document.createElement('div');
-                botMessage.className = 'message bot';
-                
-                let frenchPart = messageText;
-                let japanesePart = "";
-                
-                if (messageText.includes("---")) {
-                    const parts = messageText.split("---");
-                    frenchPart = parts[0].trim();
-                    japanesePart = parts[1].trim();
-                }
-
-                botMessage.innerHTML = `
-                    <span class="french-text">${frenchPart}</span>
-                    <br>
-                    <button class="audio-btn" onclick="speakFrench(this.previousElementSibling.innerText)">🔊 もう一度聴く</button>
-                    ${japanesePart ? `<div class="japanese-translation">${japanesePart.replace(/\n/g, '<br>')}</div>` : ''}                `;
-                chatContainer.appendChild(botMessage);
-                speakFrench(frenchPart);
-            } else {
-                const userMessage = document.createElement('div');
-                userMessage.className = 'message user';
-                userMessage.innerText = messageText;
-                chatContainer.appendChild(userMessage);
-            }
+            // ユーザーの発言を画面に追加
+            const userMessage = document.createElement('div');
+            userMessage.className = 'message user';
+            userMessage.innerText = messageText;
+            chatContainer.appendChild(userMessage);
 
             inputField.value = '';
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
-
-        document.getElementById('user-input').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') processInput();
-        });
-    </script>
-</body>
-</html>
-Use code with caution.
+            
+            // 「考え中...」のステータスを表示
+            const statusMsg = document.createElement('div');
+            statusMsg.className = 'status-msg';
+            statusMsg.innerText = "Christelleが返信を考えています...";
