@@ -1,0 +1,210 @@
+
+html<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Christelle - フランス語会話パートナー</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --bg-color: #f5f7fb;
+            --chat-bg: #ffffff;
+            --text-color: #333333;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .subtitle {
+            font-size: 0.8rem;
+            font-weight: normal;
+            opacity: 0.9;
+            margin-top: 4px;
+        }
+        #chat-container {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .message {
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            line-height: 1.5;
+            font-size: 0.95rem;
+            position: relative;
+        }
+        .bot {
+            background-color: var(--chat-bg);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .user {
+            background-color: var(--primary-color);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        .audio-btn {
+            background: #e1f0ff;
+            border: none;
+            color: var(--primary-color);
+            padding: 5px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            margin-top: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: bold;
+        }
+        .audio-btn:hover {
+            background: #d0e6ff;
+        }
+        .japanese-translation {
+            margin-top: 8px;
+            font-size: 0.85rem;
+            color: #666;
+            border-top: 1px dashed #ddd;
+            padding-top: 8px;
+        }
+        #input-container {
+            padding: 10px;
+            background-color: white;
+            display: flex;
+            gap: 10px;
+            border-top: 1px solid #e0e0e0;
+        }
+        #user-input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 24px;
+            font-size: 1rem;
+            outline: none;
+        }
+        #user-input:focus {
+            border-color: var(--primary-color);
+        }
+        #send-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0 20px;
+            border-radius: 24px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        #send-btn:hover {
+            background-color: #357abd;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        Christelle (クリステル)
+        <div class="subtitle">フランス語会話パートナー (43歳・フランス北西部出身)</div>
+    </header>
+
+    <div id="chat-container">
+        <!-- 最初のメッセージ -->
+        <div class="message bot">
+            <span class="french-text">Enchanté ! Je m'appelle Christelle. J'ai 43 ans et je viens du nord-ouest de la France. Comment tu t'appelles ?</span>
+            <br>
+            <button class="audio-btn" onclick="speakFrench(this)">🔊 フランス語発音を聴く</button>
+            <div class="japanese-translation">
+                【日本語訳】はじめまして！クリステルです。43歳で、フランスの北西部出身です。お名前は何ですか？
+            </div>
+        </div>
+    </div>
+
+    <div id="input-container">
+        <input type="text" id="user-input" placeholder="フランス語で返信を入力、またはClaudeの返文をコピペ..." autocomplete="off">
+        <button id="send-btn" onclick="sendMessage()">送信</button>
+    </div>
+
+    <script>
+        // フランス語を音声読み上げする関数
+        function speakFrench(button) {
+            // ボタンの直前にあるフランス語テキストを取得
+            const text = button.previousElementSibling.innerText;
+            
+            // すでに喋っている場合は停止
+            if (window.speechSynthesis.speaking) {
+                window.speechSynthesis.cancel();
+            }
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'fr-FR'; // フランス語に設定
+            utterance.rate = 0.9;     // 少しゆっくり（聞き取りやすく調整）
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // 画面にメッセージを追加する関数
+        function sendMessage() {
+            const inputField = document.getElementById('user-input');
+            const messageText = inputField.value.trim();
+            if (messageText === '') return;
+
+            // ユーザーのメッセージを表示
+            const chatContainer = document.getElementById('chat-container');
+            const userMessage = document.createElement('div');
+            userMessage.className = 'message user';
+            userMessage.innerText = messageText;
+            chatContainer.appendChild(userMessage);
+
+            inputField.value = '';
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            // 注意：この簡易アプリ単体ではClaudeと自動通信しません。
+            // Claudeから届いた返信をこの画面にストックしていくためのメモ欄として使えます。
+            // 擬似的に、Claudeの返信を貼り付けやすくするためのヒントを自動返信します。
+            setTimeout(() => {
+                const botMessage = document.createElement('div');
+                botMessage.className = 'message bot';
+                botMessage.innerHTML = `
+                    <span class="french-text">Claudeの返信をここに貼り付けると、音声ボタンで発音を聴くことができますよ！</span>
+                    <br>
+                    <button class="audio-btn" onclick="speakFrench(this)">🔊 フランス語発音を聴く</button>
+                    <div class="japanese-translation">
+                        【使い方】Claudeアプリやブラウザで会話した「クリステル（AI）の返信」をコピーして、下の欄に貼り付けて送信してみましょう。ここに音声ボタン付きで保存されます。
+                    </div>
+                `;
+                chatContainer.appendChild(botMessage);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }, 1000);
+        }
+
+        // Enterキーでも送信できるようにする
+        document.getElementById('user-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
