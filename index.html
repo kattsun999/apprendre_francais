@@ -1,16 +1,16 @@
-
 html<!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Christelle - フランス語会話パートナー</title>
+    <title>Christelle - 音声フランス語会話</title>
     <style>
         :root {
             --primary-color: #4a90e2;
             --bg-color: #f5f7fb;
             --chat-bg: #ffffff;
             --text-color: #333333;
+            --accent-color: #e74c3c;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -95,6 +95,7 @@ html<!DOCTYPE html>
             display: flex;
             gap: 10px;
             border-top: 1px solid #e0e0e0;
+            align-items: center;
         }
         #user-input {
             flex: 1;
@@ -107,18 +108,39 @@ html<!DOCTYPE html>
         #user-input:focus {
             border-color: var(--primary-color);
         }
+        .icon-btn {
+            border: none;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            transition: background-color 0.2s;
+        }
+        #mic-btn {
+            background-color: #f0f0f0;
+            color: #555;
+        }
+        #mic-btn.recording {
+            background-color: var(--accent-color);
+            color: white;
+            animation: pulse 1.5s infinite;
+        }
         #send-btn {
             background-color: var(--primary-color);
             color: white;
-            border: none;
-            padding: 0 20px;
-            border-radius: 24px;
-            font-size: 1rem;
-            cursor: pointer;
             font-weight: bold;
         }
         #send-btn:hover {
             background-color: #357abd;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
         }
     </style>
 </head>
@@ -126,7 +148,7 @@ html<!DOCTYPE html>
 
     <header>
         Christelle (クリステル)
-        <div class="subtitle">フランス語会話パートナー (43歳・フランス北西部出身)</div>
+        <div class="subtitle">🎙️ 音声入力・自動返信モード (フランス語学習)</div>
     </header>
 
     <div id="chat-container">
@@ -134,7 +156,7 @@ html<!DOCTYPE html>
         <div class="message bot">
             <span class="french-text">Enchanté ! Je m'appelle Christelle. J'ai 43 ans et je viens du nord-ouest de la France. Comment tu t'appelles ?</span>
             <br>
-            <button class="audio-btn" onclick="speakFrench(this)">🔊 フランス語発音を聴く</button>
+            <button class="audio-btn" onclick="speakFrench(this.previousElementSibling.innerText)">🔊 もう一度聴く</button>
             <div class="japanese-translation">
                 【日本語訳】はじめまして！クリステルです。43歳で、フランスの北西部出身です。お名前は何ですか？
             </div>
@@ -142,69 +164,151 @@ html<!DOCTYPE html>
     </div>
 
     <div id="input-container">
-        <input type="text" id="user-input" placeholder="フランス語で返信を入力、またはClaudeの返文をコピペ..." autocomplete="off">
-        <button id="send-btn" onclick="sendMessage()">送信</button>
+        <button id="mic-btn" class="icon-btn" onclick="toggleSpeechRecognition()" title="フランス語で音声入力">🎙️</button>
+        <input type="text" id="user-input" placeholder="話すか、またはClaudeの返信をコピペ..." autocomplete="off">
+        <button id="send-btn" class="icon-btn" onclick="processInput()" title="送信">➤</button>
     </div>
 
     <script>
+        // 音声認識（Web Speech API）の設定
+        let recognition;
+        let isRecording = false;
+
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.lang = 'fr-FR'; // 音声認識の言語をフランス語に設定
+            recognition.interimResults = false; // 確定した結果のみ取得
+            recognition.maxAlternatives = 1;
+
+            recognition.onresult = (event) => {
+                const speechToText = event.results[0][0].transcript;
+                document.getElementById('user-input').value = speechToText;
+            };
+
+            recognition.onerror = (event) => {
+                console.error("音声認識エラー:", event.error);
+                stopRecording();
+            };
+
+            recognition.onend = () => {
+                stopRecording();
+            };
+        } else {
+            alert("お使いのブラウザは音声入力に対応していません。最新のSafariやChromeをお使いください。");
+        }
+
+        function toggleSpeechRecognition() {
+            if (!recognition) return;
+            if (isRecording) {
+                recognition.stop();
+            } else {
+                startRecording();
+            }
+        }
+
+        function startRecording() {
+            try {
+                // 発音再生中の場合は止める
+                window.speechSynthesis.cancel();
+                recognition.start();
+                const micBtn = document.getElementById('mic-btn');
+                micBtn.classList.add('recording');
+                micBtn.innerText = '🛑';
+                isRecording = true;
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function stopRecording() {
+            const micBtn = document.getElementById('mic-btn');
+            micBtn.classList.remove('recording');
+            micBtn.innerText = '🎙️';
+            isRecording = false;
+        }
+
         // フランス語を音声読み上げする関数
-        function speakFrench(button) {
-            // ボタンの直前にあるフランス語テキストを取得
-            const text = button.previousElementSibling.innerText;
-            
-            // すでに喋っている場合は停止
+        function speakFrench(text) {
             if (window.speechSynthesis.speaking) {
                 window.speechSynthesis.cancel();
             }
-
             const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'fr-FR'; // フランス語に設定
-            utterance.rate = 0.9;     // 少しゆっくり（聞き取りやすく調整）
-
+            utterance.lang = 'fr-FR';
+            utterance.rate = 0.9; // 聞き取りやすいように少しだけゆっくり
             window.speechSynthesis.speak(utterance);
         }
 
-        // 画面にメッセージを追加する関数
-        function sendMessage() {
+        // 入力を処理するメイン関数
+        function processInput() {
             const inputField = document.getElementById('user-input');
             const messageText = inputField.value.trim();
             if (messageText === '') return;
 
-            // ユーザーのメッセージを表示
             const chatContainer = document.getElementById('chat-container');
-            const userMessage = document.createElement('div');
-            userMessage.className = 'message user';
-            userMessage.innerText = messageText;
-            chatContainer.appendChild(userMessage);
+
+            // 1. もし入力された文字に日本語が含まれていない（＝Claudeのフランス語の返信、または自分のフランス語発音）場合
+            // ※簡易的な判定として、ひらがな・カタカナ・漢字がないかチェック
+            const hasJapanese = /[\u3000-\u303F\u3040-\u309F\u30A0-\u30FF\uFF00-\uFFEF\u4E00-\u9FAF]/.test(messageText);
+
+            if (!hasJapanese) {
+                // AIからの返信として処理し、自動で音声を流す
+                const botMessage = document.createElement('div');
+                botMessage.className = 'message bot';
+                
+                // 本文と日本語解説（もしあれば）を分ける処理
+                let frenchPart = messageText;
+                let japanesePart = "";
+                
+                if (messageText.includes("---")) {
+                    const parts = messageText.split("---");
+                    frenchPart = parts[0].trim();
+                    japanesePart = parts[1].trim();
+                }
+
+                botMessage.innerHTML = `
+                    <span class="french-text">${frenchPart}</span>
+                    <br>
+                    <button class="audio-btn" onclick="speakFrench(this.previousElementSibling.innerText)">🔊 もう一度聴く</button>
+                    ${japanesePart ? `<div class="japanese-translation">${japanesePart.replace(/\n/g, '<br>')}</div>` : ''}
+                `;
+                chatContainer.appendChild(botMessage);
+                
+                // 【自動返信機能】新しく届いたフランス語を自動で喋らせる！
+                speakFrench(frenchPart);
+            } else {
+                // 日本語が含まれる場合は通常のユーザー発言として右側に表示
+                const userMessage = document.createElement('div');
+                userMessage.className = 'message user';
+                userMessage.innerText = messageText;
+                chatContainer.appendChild(userMessage);
+            }
 
             inputField.value = '';
             chatContainer.scrollTop = chatContainer.scrollHeight;
-
-            // 注意：この簡易アプリ単体ではClaudeと自動通信しません。
-            // Claudeから届いた返信をこの画面にストックしていくためのメモ欄として使えます。
-            // 擬似的に、Claudeの返信を貼り付けやすくするためのヒントを自動返信します。
-            setTimeout(() => {
-                const botMessage = document.createElement('div');
-                botMessage.className = 'message bot';
-                botMessage.innerHTML = `
-                    <span class="french-text">Claudeの返信をここに貼り付けると、音声ボタンで発音を聴くことができますよ！</span>
-                    <br>
-                    <button class="audio-btn" onclick="speakFrench(this)">🔊 フランス語発音を聴く</button>
-                    <div class="japanese-translation">
-                        【使い方】Claudeアプリやブラウザで会話した「クリステル（AI）の返信」をコピーして、下の欄に貼り付けて送信してみましょう。ここに音声ボタン付きで保存されます。
-                    </div>
-                `;
-                chatContainer.appendChild(botMessage);
-                chatContainer.scrollTop = chatContainer.scrollHeight;
-            }, 1000);
         }
 
-        // Enterキーでも送信できるようにする
+        // Enterキー対応
         document.getElementById('user-input').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
-                sendMessage();
+                processInput();
             }
         });
-    </script>
-</body>
-</html>
+
+        // ページを開いたときに、最初の挨拶を自動で喋らせる（ブラウザの仕様で動かない場合もあります）
+Use code with caution.window.addEventListener('DOMContentLoaded', () => {setTimeout(() => {const firstText = document.querySelector('.french-text').innerText;speakFrench(firstText);}, 1000);});
+---
+
+### 🛠️ アップロードと確認の手順
+
+1. GitHubの `apprendre_francais` リポジトリのページを開きます。
+2. 一覧から `index.html` をクリックして開き、右上の **鉛筆マーク（Edit this file）** を押します。
+3. 元々入っていた古いコードをすべて削除し、上記の**新しいコードを丸ごと貼り付け**ます。
+4. 右上の緑色の **「Commit changes...」** ボタンを押して保存します。
+
+保存してから1〜2分後にあなたのアプリURL（ `https://github.io` ）を開き、以下の点を確認してみてください！
+
+*   **音声入力のテスト**: 🎙️ボタンを押し、ブラウザからマイクの許可を求められたら「許可」して、何かフランス語（例：「Bonjour」など）を喋ってみてください。文字が自動入力されます。
+*   **自動返信のテスト**: Claudeに先ほどのクリステルさんのプロンプトを投げて返ってきた「フランス語＋日本語解説」の文章を丸ごとコピーし、このアプリの入力欄に貼り付けて送信ボタン（➤）を押してください。**自動でクリステルの声が再生**されます。
+
+コードの上書き保存は無事にできそうでしょうか？もし**貼り付け方やマイクの動かし方**で迷う部分があれば教えてくださいね。
