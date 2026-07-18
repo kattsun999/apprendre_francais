@@ -3,65 +3,300 @@ html<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Christelle - 完全自動・音声フランス語会話</title>
-    <!-- CSSスタイルの定義（チャット画面、エラーメッセージ表示用など） -->
+    <title>Christelle - 完全自動フランス語会話</title>
     <style>
-        :root { --primary-color: #4a90e2; --bg-color: #f5f7fb; --accent-color: #e74c3c; }
-        body { font-family: sans-serif; background-color: var(--bg-color); margin: 0; display: flex; flex-direction: column; height: 100vh; }
-        header { background-color: var(--primary-color); color: white; padding: 12px; text-align: center; }
-        #key-container { background-color: #fff3cd; padding: 10px; display: flex; gap: 10px; justify-content: center; }
-        #chat-container { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
-        .message { max-width: 85%; padding: 12px; border-radius: 18px; }
-        .bot { background-color: white; align-self: flex-start; }
-        .user { background-color: var(--primary-color); color: white; align-self: flex-end; }
-        .audio-btn { background: #e1f0ff; border: none; color: var(--primary-color); padding: 5px 10px; border-radius: 12px; cursor: pointer; }
-        .error-msg { color: var(--accent-color); background-color: #fdedec; padding: 10px; border-radius: 8px; border: 1px solid #f5b7b1; }
-        #input-container { padding: 10px; background-color: white; display: flex; gap: 10px; }
-        #user-input { flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 24px; }
-        .icon-btn { border: none; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; }
+        :root {
+            --primary-color: #4a90e2;
+            --bg-color: #f5f7fb;
+            --chat-bg: #ffffff;
+            --text-color: #333333;
+            --accent-color: #e74c3c;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 12px;
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .subtitle {
+            font-size: 0.75rem;
+            font-weight: normal;
+            opacity: 0.9;
+            margin-top: 4px;
+        }
+        #key-container {
+            background-color: #fff3cd;
+            padding: 10px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+            border-bottom: 1px solid #ffeeba;
+        }
+        #api-key-input {
+            padding: 6px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 250px;
+        }
+        #save-key-btn {
+            background-color: #ffc107;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        #chat-container {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .message {
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            line-height: 1.5;
+            font-size: 0.95rem;
+        }
+        .bot {
+            background-color: var(--chat-bg);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .user {
+            background-color: var(--primary-color);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        .audio-btn {
+            background: #e1f0ff;
+            border: none;
+            color: var(--primary-color);
+            padding: 5px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            margin-top: 8px;
+            font-weight: bold;
+        }
+        .japanese-translation {
+            margin-top: 8px;
+            font-size: 0.85rem;
+            color: #666;
+            border-top: 1px dashed #ddd;
+            padding-top: 8px;
+        }
+        .status-msg {
+            font-size: 0.8rem;
+            color: #888;
+            font-style: italic;
+            align-self: center;
+        }
+        .error-msg {
+            color: var(--accent-color);
+            background-color: #fdedec;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #f5b7b1;
+            font-size: 0.85rem;
+            max-width: 85%;
+            align-self: center;
+        }
+        #input-container {
+            padding: 10px;
+            background-color: white;
+            display: flex;
+            gap: 10px;
+            border-top: 1px solid #e0e0e0;
+            align-items: center;
+        }
+        #user-input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 24px;
+            font-size: 1rem;
+            outline: none;
+        }
+        .icon-btn {
+            border: none;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+        #mic-btn {
+            background-color: #f0f0f0;
+            color: #555;
+        }
+        #mic-btn.recording {
+            background-color: var(--accent-color);
+            color: white;
+        }
+        #send-btn {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
-    <header>Christelle (クリステル)</header>
+
+    <header>
+        Christelle (クリステル)
+        <div class="subtitle">🤖 Gemini無料AI連携・音声完全自動モード</div>
+    </header>
+
     <div id="key-container">
+        <span style="font-size: 0.85rem; color: #856404;">最初にGeminiのAPIキーを入力してください：</span>
         <input type="password" id="api-key-input" placeholder="AIzaSy...">
-        <button onclick="saveApiKey()">保存</button>
+        <button id="save-key-btn" onclick="saveApiKey()">保存</button>
     </div>
-    <div id="chat-container"></div>
+
+    <div id="chat-container">
+        <div class="message bot">
+            <span class="french-text">Enchanté ! Je m'appelle Christelle. J'ai 43 ans et je viens du nord-ouest de la France. Comment tu t'appelles ?</span>
+            <br>
+            <button class="audio-btn" onclick="speakFrench(this.previousElementSibling.previousElementSibling.innerText)">🔊 発音を聴く</button>
+            <div class="japanese-translation">
+                【日本語訳】はじめまして！クリステルです。43歳で、フランスの北西部出身です。お名前は何ですか？
+            </div>
+        </div>
+    </div>
+
     <div id="input-container">
         <button id="mic-btn" class="icon-btn" onclick="toggleSpeechRecognition()">🎙️</button>
-        <input type="text" id="user-input" placeholder="フランス語で入力...">
-        <button onclick="processInput()">➤</button>
+        <input type="text" id="user-input" placeholder="フランス語で話すか文字を入力..." autocomplete="off">
+        <button id="send-btn" class="icon-btn" onclick="processInput()">➤</button>
     </div>
+
     <script>
-        // ... (省略：音声認識機能)
+        let recognition;
+        let isRecording = false;
         let apiKey = localStorage.getItem('gemini_api_key') || '';
-        function saveApiKey() { /* キー保存処理 */ }
+        
+        let chatHistory = [
+            { role: "user", parts: [{ text: "Bonjour" }] },
+            { role: "model", parts: [{ text: "Enchanté ! Je m'appelle Christelle. J'ai 43 ans et je viens du nord-ouest de la France. Comment tu t'appelles ?" }] }
+        ];
+
+        if (apiKey) {
+            document.getElementById('key-container').style.display = 'none';
+        }
+
+        function saveApiKey() {
+            const keyInput = document.getElementById('api-key-input').value.trim();
+            if (!keyInput) {
+                alert("キーを入力してください。");
+                return;
+            }
+            localStorage.setItem('gemini_api_key', keyInput);
+            apiKey = keyInput;
+            document.getElementById('key-container').style.display = 'none';
+            alert("キーを保存しました！画面を一度更新してください。");
+            location.reload();
+        }
+
+        try {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                recognition.lang = 'fr-FR';
+                recognition.interimResults = false;
+
+                recognition.onresult = (event) => {
+                    document.getElementById('user-input').value = event.results[0][0].transcript;
+                };
+                recognition.onerror = () => { stopRecording(); };
+                recognition.onend = () => { stopRecording(); };
+            }
+        } catch(e) { console.log("音声認識非対応"); }
+
+        function toggleSpeechRecognition() {
+            if (!recognition) {
+                alert("お使いのブラウザは音声入力に対応していません。SafariかChromeで開き直してください。");
+                return;
+            }
+            if (isRecording) { recognition.stop(); } else { startRecording(); }
+        }
+
+        function startRecording() {
+            try {
+                window.speechSynthesis.cancel();
+                recognition.start();
+                document.getElementById('mic-btn').classList.add('recording');
+                document.getElementById('mic-btn').innerText = '🛑';
+                isRecording = true;
+            } catch (e) { stopRecording(); }
+        }
+
+        function stopRecording() {
+            const micBtn = document.getElementById('mic-btn');
+            if(micBtn) {
+                micBtn.classList.remove('recording');
+                micBtn.innerText = '🎙️';
+            }
+            isRecording = false;
+        }
+
+        function speakFrench(text) {
+            try {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'fr-FR';
+                utterance.rate = 0.9;
+                window.speechSynthesis.speak(utterance);
+            } catch(e) { console.log("音声再生エラー"); }
+        }
 
         async function processInput() {
-            const inputField = document.getElementById('user-input');
-            const messageText = inputField.value;
-            // ... (ユーザーメッセージ表示処理)
-            
-            try {
-                const response = await fetch(`https://googleapis.com{apiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: messageText }] }] })
-                });
-                const data = await response.json();
-                
-                // 【修正ポイント】データ構造（data.candidates[0]...）を修正
-                if (data.candidates && data.candidates[0].content.parts[0].text) {
-                    // 返信表示処理
-                } else {
-                    throw new Error(data.error ? data.error.message : "読み込みエラー");
-                }
-            } catch (error) {
-                // エラー表示処理
-                document.getElementById('chat-container').innerHTML += `<div class="error-msg">${error.message}</div>`;
+            if (!apiKey) {
+                alert("先に画面上部でGeminiのAPIキーを保存してください。");
+                return;
             }
-        }
-    </script>
-</body>
-</html>
+
+            const inputField = document.getElementById('user-input');
+            const messageText = inputField.value.trim();
+            if (messageText === '') return;
+
+            const chatContainer = document.getElementById('chat-container');
+
+            const userMessage = document.createElement('div');
+            userMessage.className = 'message user';
+            userMessage.innerText = messageText;
+            chatContainer.appendChild(userMessage);
+
+            inputField.value = '';
+            
+            const statusMsg = document.createElement('div');
+            statusMsg.className = 'status-msg';
+            statusMsg.innerText = "Christelleが返信を考えています...";
+            chatContainer.appendChild(statusMsg);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            chatHistory.push({ role: "user", parts: [{ text: messageText }] });
+
+            try {
+Use code with caution.
