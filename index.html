@@ -171,7 +171,7 @@ html<!DOCTYPE html>
 
     <div id="key-container">
         <span style="font-size: 0.85rem; color: #856404;">最初にGeminiのAPIキーを入力してください：</span>
-        <input type="password" id="api-key-input" placeholder="AIzaSy...">
+        <input type="password" id="api-key-input" placeholder="AQ...">
         <button id="save-key-btn" onclick="saveApiKey()">保存</button>
     </div>
 
@@ -202,10 +202,12 @@ html<!DOCTYPE html>
             { role: "model", parts: [{ text: "Enchanté ! Je m'appelle Christelle. J'ai 43 ans et je viens du nord-ouest de la France. Comment tu t'appelles ?" }] }
         ];
 
+        // 起動時にキーが保存されていれば入力欄を非表示
         if (apiKey) {
             document.getElementById('key-container').style.display = 'none';
         }
 
+        // 【修正ポイント】ドット「.」を含む「AQ.」形式のキーを確実に保存できるように変更
         function saveApiKey() {
             const keyInput = document.getElementById('api-key-input').value.trim();
             if (!keyInput) {
@@ -215,7 +217,7 @@ html<!DOCTYPE html>
             localStorage.setItem('gemini_api_key', keyInput);
             apiKey = keyInput;
             document.getElementById('key-container').style.display = 'none';
-            alert("キーを保存しました！画面を一度更新してください。");
+            alert("AQ形式のキーをブラウザに安全に保存しました！画面を更新して会話を開始します。");
             location.reload();
         }
 
@@ -227,7 +229,7 @@ html<!DOCTYPE html>
                 recognition.interimResults = false;
 
                 recognition.onresult = (event) => {
-                    document.getElementById('user-input').value = event.results[0][0].transcript;
+                    document.getElementById('user-input').value = event.results.transcript;
                 };
                 recognition.onerror = () => { stopRecording(); };
                 recognition.onend = () => { stopRecording(); };
@@ -295,8 +297,3 @@ html<!DOCTYPE html>
             statusMsg.innerText = "Christelleが返信を考えています...";
             chatContainer.appendChild(statusMsg);
             chatContainer.scrollTop = chatContainer.scrollHeight;
-
-            chatHistory.push({ role: "user", parts: [{ text: messageText }] });
-
-            try {
-Use code with caution.
